@@ -1,69 +1,66 @@
 from PIL import Image
 from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import letter
+from reportlab.lib.utils import ImageReader
 from datetime import datetime
+from io import BytesIO
 import os
 
-STATIC_IMAGE_PATH = "static/original_image.jpg"
-OUTPUT_DIR = "output/pdfs"
+STATIC_IMAGE_PATH = "app/assets/source.jpg"
+OUTPUT_DIR = "app/storage/pdfs"
 
 
 def ensure_directories():
-    """Ensure output directory exists"""
     os.makedirs(OUTPUT_DIR, exist_ok=True)
-    os.makedirs("static", exist_ok=True)
 
 
 def crop_and_create_pdf(width: float, height: float, item_id: int) -> str:
-    """
-    Crop image from top-left corner and create a PDF with timestamp
-
-    Args:
-        width: Width in pixels to crop
-        height: Height in pixels to crop
-        item_id: ID of the item for filename
-
-    Returns:
-        str: Path to the created PDF file
-    """
     ensure_directories()
 
-    # Check if static image exists
     if not os.path.exists(STATIC_IMAGE_PATH):
         raise FileNotFoundError(f"Static image not found at {STATIC_IMAGE_PATH}")
 
-    # Open the original image
+    # 1️⃣ Load image safely
     original_image = Image.open(STATIC_IMAGE_PATH)
+    original_image = original_image.convert("RGB")
 
-    # Ensure we don't crop beyond image boundaries
     crop_width = min(int(width), original_image.width)
     crop_height = min(int(height), original_image.height)
 
-    # Crop from top-left (0, 0) to (width, height)
+    if crop_width <= 0 or crop_height <= 0:
+        raise ValueError("Width and height must be greater than 0")
+
+    # 2️⃣ Crop top-left
     cropped_image = original_image.crop((0, 0, crop_width, crop_height))
 
-    # Save cropped image temporarily
-    temp_image_path = f"{OUTPUT_DIR}/temp_cropped_{item_id}.jpg"
-    cropped_image.save(temp_image_path, "JPEG")
+    # 3️⃣ Convert cropped image → BYTES (this is the key)
+    img_buffer = BytesIO()
+    cropped_image.save(img_buffer, format="JPEG")
+    img_buffer.seek(0)
 
-    # Create PDF with timestamp
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    image_reader = ImageReader(img_buffer)
+
+    # 4️⃣ Create PDF
+    timestamp = datetime.utcnow().strftime("%Y-%m-%d_%H-%M-%S")
     pdf_filename = f"item_{item_id}_{timestamp}.pdf"
     pdf_path = os.path.join(OUTPUT_DIR, pdf_filename)
 
-    # Create PDF
     c = canvas.Canvas(pdf_path, pagesize=(crop_width, crop_height))
 
-    # Add timestamp text at the top
+    # Draw image
+    c.drawImage(
+        image_reader,
+        0,
+        0,
+        width=crop_width,
+        height=crop_height,
+        mask="auto",
+    )
+
+    # Timestamp
     c.setFont("Helvetica", 12)
-    c.drawString(10, crop_height - 20, f"Generated: {timestamp}")
+    c.drawString(10, crop_height - 20, f"Generated: {timestamp} UTC")
 
-    # Add the cropped image
-    c.drawImage(temp_image_path, 0, 0, width=crop_width, height=crop_height)
-
+    c.showPage()
     c.save()
-
-    # Clean up temporary image
-    os.remove(temp_image_path)
 
     return pdf_path

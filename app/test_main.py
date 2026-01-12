@@ -7,7 +7,6 @@ import os
 from main import app
 from database import Base, get_db
 from models import User, Material, ProductType, Item
-from auth import get_password_hash
 
 # Test database URL
 TEST_DATABASE_URL = "mysql+aiomysql://testuser:testpass@localhost:3306/test_testdb"

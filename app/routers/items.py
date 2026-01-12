@@ -4,12 +4,14 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from app.database import get_db
+from app.image_processor import crop_and_create_pdf
 from app.models import Item
 from app.schemas import ItemCreate, ItemOut, ItemUpdate
 from app.auth import get_current_user
 from app.models import User
 
 router = APIRouter(tags=["Items"])
+
 
 
 @router.post("/", response_model=ItemOut)
@@ -31,6 +33,25 @@ async def create_item(
         )
 
     await db.refresh(item)
+
+    # 🔹 Generate PDF after item exists
+    try:
+        pdf_path = crop_and_create_pdf(
+            width=item.width,
+            height=item.height,
+            item_id=item.id,
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"PDF generation failed: {str(e)}",
+        )
+
+    # 🔹 Save PDF path
+    item.pdf_path = pdf_path
+    await db.commit()
+    await db.refresh(item)
+
     return item
 
 
