@@ -1,0 +1,16 @@
+# Ignore files and directories commonly used during development
+__pycache__
+.git
+.vscode
+*.pyc
+
+# Ignore Docker-specific files
+.dockerignore
+Dockerfile
+
+# Ignore environment-specific files
+.env
+
+# Ignore any files or directories you don't want to include in the Docker image
+# For example, configuration files that are not needed in the image
+config.ini
