@@ -19,7 +19,7 @@ async def lifespan(app: FastAPI):
     await engine.dispose()
 
 app = FastAPI(
-    title="Backend Test Task API",
+    title="Rueckwand24 Task API",
     description="FastAPI + MySQL with JWT Authentication",
     version="1.0.0",
     lifespan=lifespan,

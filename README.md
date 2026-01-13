@@ -17,28 +17,42 @@ A complete FastAPI application with JWT authentication, CRUD operations, and ima
 
 ```
 .
-├── main.py                  # FastAPI application entry point
-├── database.py              # Database configuration
-├── models.py                # SQLAlchemy models
-├── schemas.py               # Pydantic schemas
-├── auth.py                  # Authentication utilities
-├── image_processor.py       # Image cropping and PDF generation
-├── routers/
-│   ├── __init__.py
-│   ├── auth.py             # Authentication endpoints
-│   ├── users.py            # User CRUD endpoints
-│   ├── materials.py        # Material CRUD endpoints
-│   ├── product_types.py    # Product Type CRUD endpoints
-│   └── items.py            # Item CRUD endpoints with image processing
-├── static/
-│   └── original_image.jpg  # Static image for cropping (you need to add this)
-├── output/
-│   └── pdfs/               # Generated PDF files
-├── test_main.py            # Unit tests
-├── Dockerfile              # Docker container configuration
-├── docker-compose.yml      # Docker Compose configuration
-├── requirements.txt        # Python dependencies
-└── README.md              # This file
+Rueckwand24_Task/
+├── app/
+│   ├── assets/
+│   │   └── source.jpg
+│   ├── routers/
+│   │   ├── __init__.py
+│   │   ├── auth.py
+│   │   ├── items.py
+│   │   ├── materials.py
+│   │   ├── product_types.py
+│   │   ├── token_sessions.py
+│   │   └── users.py
+│   ├── storage/
+│   │   └── pdfs/
+│   ├── test/
+│   │   ├── conftest.py
+│   │   ├── test_auth.py
+│   │   ├── test_item.py
+│   │   ├── test_materials.py
+│   │   ├── test_product_type.py
+│   │   ├── test_token_sessions.py
+│   │   └── test_user.py
+│   ├── auth.py
+│   ├── database.py
+│   ├── image_processor.py
+│   ├── main.py
+│   ├── models.py
+│   └── schemas.py
+├── .dockerignore
+├── .env
+├── .gitignore
+├── docker-compose.yaml
+├── Dockerfile
+├── requirements.txt
+└── README.md
+
 ```
 
 ## Prerequisites
@@ -48,53 +62,85 @@ A complete FastAPI application with JWT authentication, CRUD operations, and ima
 
 ## Setup Instructions
 
-### Step 1: Clone and Setup
+### 1️⃣ Clone the Repository
 
 ```bash
-# Create project directory
-mkdir backend-test-task
-cd backend-test-task
-
-# Copy all the provided files into this directory
+git clone https://github.com/mahmoud98-30/Rueckwand24_Task.git
+cd Rueckwand24_Task
 ```
 
-### Step 2: Add Static Image
+---
 
-**IMPORTANT:** You need to add a static image file for the cropping functionality to work.
+### 2️⃣ Static Assets
+
+The required static image for cropping and PDF generation is **already included** in the project:
+
+```text
+app/assets/source.jpg
+```
+
+⚠️ **Do not rename or remove this file**, as it is used by the image processing logic.
+
+---
+
+### 3️⃣ Build and Start the Application
 
 ```bash
-# Create static directory
-mkdir -p static
-
-# Add your image file (should be large enough to crop from)
-# Place your image as: static/original_image.jpg
-# Recommended size: at least 1920x1080 pixels or larger
+docker compose up --build
 ```
 
-You can download a sample image:
-```bash
-# Example: Download a sample image
-wget https://picsum.photos/2000/1500.jpg -O static/original_image.jpg
-```
-
-### Step 3: Start with Docker
+Or run in detached mode:
 
 ```bash
-# Build and start all services
-docker-compose up --build
-
-# Or run in detached mode
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
-The application will be available at:
-- **API**: http://localhost:8000
-- **API Documentation**: http://localhost:8000/docs
-- **Alternative Docs**: http://localhost:8000/redoc
+Docker will automatically:
 
-### Step 4: Initialize Database (Automatic)
+- Build the FastAPI application  
+- Start the database service  
+- Create database tables on startup  
 
-The database tables are created automatically when the application starts.
+---
+
+### 4️⃣ Access the Application
+
+Once running, the API is available at:
+
+- **API Base URL**: http://localhost:8000  
+- **Swagger UI**: http://localhost:8000/docs  
+- **ReDoc**: http://localhost:8000/redoc  
+
+---
+
+### 5️⃣ Running Tests (Inside Docker)
+
+All unit tests are executed inside the application container:
+
+```bash
+docker compose exec app python -m pytest
+```
+
+Run a specific test file:
+
+```bash
+docker compose exec app python -m pytest app/test/test_items.py
+```
+
+---
+
+### 6️⃣ Stopping the Application
+
+```bash
+docker compose down
+```
+
+To also remove volumes (⚠️ deletes database data):
+
+```bash
+docker compose down -v
+```
+
 
 ## API Usage
 
@@ -166,7 +212,7 @@ When you create an item:
 1. The system crops the original image from position (0, 0) with the specified width and height
 2. The cropped section is converted to a PDF
 3. A timestamp is added to the PDF
-4. The PDF is saved to `output/pdfs/`
+4. The PDF is saved to `storage/pdfs/`
 5. The file path is stored in the item record
 
 Example PDF filename: `item_1_2024-01-12_14-30-45.pdf`
@@ -229,22 +275,6 @@ pytest test_main.py -v
 
 All endpoints except user creation and login require JWT authentication.
 
-## Database Schema
-
-### Users Table
-- id, username, email, hashed_password, created_at, updated_at
-
-### Token Sessions Table
-- id, user_id, token, created_at, expires_at
-
-### Materials Table
-- id, name, description, created_at, updated_at
-
-### Product Types Table
-- id, name, description, created_at, updated_at
-
-### Items Table
-- id, material_id, product_type_id, width, height, pdf_path, created_at, updated_at
 
 ## Configuration
 
@@ -274,50 +304,6 @@ docker-compose down
 docker-compose down -v
 ```
 
-## Troubleshooting
-
-### Database Connection Issues
-
-```bash
-# Check if MySQL is ready
-docker-compose logs db
-
-# Restart services
-docker-compose restart
-```
-
-### Image Processing Issues
-
-Make sure `static/original_image.jpg` exists and is readable:
-
-```bash
-ls -la static/original_image.jpg
-```
-
-### View Application Logs
-
-```bash
-# Follow logs
-docker-compose logs -f app
-
-# View database logs
-docker-compose logs db
-```
-
-## Production Considerations
-
-Before deploying to production:
-
-1. **Change SECRET_KEY** in environment variables
-2. **Use strong database passwords**
-3. **Add rate limiting**
-4. **Implement proper logging**
-5. **Add CORS middleware** if needed
-6. **Use HTTPS** with proper SSL certificates
-7. **Add input validation** and sanitization
-8. **Implement proper error handling**
-9. **Add database backups**
-10. **Monitor application performance**
 
 ## Technologies Used
 
@@ -329,11 +315,3 @@ Before deploying to production:
 - **ReportLab** - PDF generation
 - **Docker** - Containerization
 - **Pytest** - Testing framework
-
-## License
-
-This is a test task implementation.
-
-## Support
-
-For issues or questions, please check the FastAPI documentation at https://fastapi.tiangolo.com/
