@@ -11,23 +11,20 @@ security = HTTPBearer()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Create tables on startup
+    # startup
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield
-    # Cleanup on shutdown
+    # shutdown
     await engine.dispose()
 
 app = FastAPI(
     title="Backend Test Task API",
     description="FastAPI + MySQL with JWT Authentication",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
-@app.on_event("startup")
-async def startup():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(users.router, prefix="/api/users", tags=["Users"])
